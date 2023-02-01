@@ -148,7 +148,6 @@ src/*.pcm
 bin/
 
 #dataset folder
-sampledata/
 test_input.pcm
 test_output.pcm
 test.output
@@ -157,3 +156,6 @@ sampledata_vctk_DEMAND
 training.h5
 
 DNS-Challenge
+sampledata/noise/noise.pcm
+sampledata/speech/speech.pcm
+src/nnet_data.cpp

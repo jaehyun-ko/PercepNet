@@ -45,8 +45,6 @@ class CppRawListDataset(Dataset):
         with open(self.filelist[index], 'rb') as cpp_out:
             all_data = np.fromfile(cpp_out, np.float32)
             all_data = np.reshape(all_data, (self.train_length_size,138))
-            #make it band energy 30 times bigger for compansating low energy
-            all_data[:,:68] = all_data[:,:68]*30
 
         x = all_data[:,:self.x_dim]
         y = all_data[:,self.x_dim:]

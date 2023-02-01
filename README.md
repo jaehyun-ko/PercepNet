@@ -26,7 +26,7 @@ https://www.researchgate.net/publication/343568932_A_Perceptually-Motivated_Appr
 ```shell
 git clone -b interspeech2020/master  https://github.com/microsoft/DNS-Challenge.git
 ```
-2. Follow the Usage instruction in DNS Challenge repo(https://github.com/microsoft/DNS-Challenge) at interspeech2020/master branch. please modify save directories at DNS-Challenge/noisyspeech_synthesizer.cfg sampledata/speech and sampledata/noise each.
+2. Follow the Usage instruction in DNS Challenge repo(https://github.com/microsoft/DNS-Challenge) at interspeech2020/master branch. please modify total_hours 500 and save directories at DNS-Challenge/noisyspeech_synthesizer.cfg training_set_sept12_500h/clean and training_set_sept12_500h/noise each.
 
 ## Build & Training
 This repository is tested on Ubuntu 20.04(WSL2)
@@ -54,7 +54,8 @@ python3 utils/bin2h5.py test.output training.h5
 ```
 
 5. Training
-run utils/run.sh
+- uncomment some commented lines, set directory and stage information in utils/run.sh.
+- and run utils/run.sh
 ```shell
 cd utils
 ./run.sh
@@ -70,10 +71,12 @@ python3 dump_percepnet.py model.pt
 cd bin
 cmake ..
 make -j1
-cd ..
-bin/src/percepNet_run test_input.pcm percepnet_output.pcm
+cd bin/src/tests
+./percepNet_tst test_input.pcm percepnet_output.pcm
 ```
-
+```
+sox -b 16 -e signed-integer  -c 1 -r 48k -t raw infile.pcm outfile.wav
+```
 
 
 ## Acknowledgements

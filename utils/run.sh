@@ -28,7 +28,9 @@
 . ./path.sh || exit 1;
 . ./parse_options.sh || exit 1;
 
+# dataset_dir="training_set_sept12_500h"
 dataset_dir="training_set_sept12_500h"
+orig_dataset_dir="sampledata"
 noisy_wav_dir="noisy"
 clean_wav_dir="clean"
 noisy_pcm_dir="noisy_pcm"
@@ -43,30 +45,34 @@ train_size_per_batch=2000
 config="DNS_Challenge.yaml"
 #pretrain="/home/seonghun/develop/PercepNet/training_set_sept12_500h/exp_erbfix_band30times_nopretrain/checkpoint-10000steps.pkl"
 
-stage=4     #stage to start
-stop_stage=4 #stop stage
+stage=5     #stage to start
+stop_stage=5 #stop stage
 
 NR_CPUS=8 #TODO: automatically detect how many cpu have
 
+#PRJ_ROOT is defined in path.sh
+#PRJ_ROOT = ${pwd}/..
 
 ###################################################
-# mkdir related dir if not exist                  #
+# mkdir related dir if not exist                  # 
 ###################################################
 mkdir -p ${PRJ_ROOT}/${dataset_dir}/{${noisy_pcm_dir},${clean_pcm_dir},${h5_train_dir},${h5_dev_dir},${feature_dir},${out_dir}}
 
 ###################################################
-# stage1 :resample to 48khz and convert wav to pcm#
+#1. stage1 :resample to 48khz and convert wav to pcm#
 ###################################################
+
 if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
+   echo "processing stage 1"
    i=0
    mkdir -p ${PRJ_ROOT}/${dataset_dir}/${noisy_wav_dir}/fileid
    mkdir -p ${PRJ_ROOT}/${dataset_dir}/${clean_wav_dir}/fileid
-   for wavfilepath in ${PRJ_ROOT}/${dataset_dir}/${noisy_wav_dir}/*.wav; do
+   for wavfilepath in ${PRJ_ROOT}/${dataset_dir}/${noisy_wav_dir}/*'.wav'; do
       ((i=i%NR_CPUS)); ((i++==0)) && wait
       (
-      # pcmfilename="`basename "${wavfilepath##*fileid_}" .wav`.pcm"
-      # pcmfilepath=${PRJ_ROOT}/${dataset_dir}/${noisy_pcm_dir}/${pcmfilename}
-      # sox ${wavfilepath} -b 16 -e signed-integer -c 1 -r 48k -t raw ${pcmfilepath}
+      pcmfilename="`basename "${wavfilepath##*fileid_}" .wav`.pcm"
+      pcmfilepath=${PRJ_ROOT}/${dataset_dir}/${noisy_pcm_dir}/${pcmfilename}
+      sox ${wavfilepath} -b 16 -e signed-integer -c 1 -r 48k -t raw ${pcmfilepath}
       
       # reduce disk usage
       newwavfilename="`basename "${wavfilepath##*fileid_}" .wav`.wav"
@@ -79,9 +85,9 @@ if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
    for wavfilepath in ${PRJ_ROOT}/${dataset_dir}/${clean_wav_dir}/*.wav; do
       ((i=i%NR_CPUS)); ((i++==0)) && wait
       (
-      # pcmfilename="`basename "${wavfilepath##*fileid_}" .wav`.pcm"
-      # pcmfilepath=${PRJ_ROOT}/${dataset_dir}/${clean_pcm_dir}/${pcmfilename}
-      # sox ${wavfilepath} -b 16 -e signed-integer -c 1 -r 48k -t raw ${pcmfilepath}
+      pcmfilename="`basename "${wavfilepath##*fileid_}" .wav`.pcm"
+      pcmfilepath=${PRJ_ROOT}/${dataset_dir}/${clean_pcm_dir}/${pcmfilename}
+      sox ${wavfilepath} -b 16 -e signed-integer -c 1 -r 48k -t raw ${pcmfilepath}
       newwavfilename="`basename "${wavfilepath##*fileid_}" .wav`.wav"
       mv ${wavfilepath} ${PRJ_ROOT}/${dataset_dir}/${clean_pcm_dir}/${newwavfilename}
       ) &
@@ -90,8 +96,9 @@ if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
 fi
 
 ###################################################
-#Generate c++ feature data for each noisy and clean data      #
+#2.Generate c++ feature data for each noisy and clean data      #
 ###################################################
+echo "Generate c++ feature data for each noisy and clean data"
 if [ "${stage}" -le 2 ] && [ "${stop_stage}" -ge 2 ]; then
    i=0
    
@@ -117,22 +124,22 @@ if [ "${stage}" -le 2 ] && [ "${stop_stage}" -ge 2 ]; then
 fi
 
 ###################################################
-#Convert features to h5 files & split dataset     #
+#3.Convert features to h5 files & split dataset     #
 ###################################################
 if [ "${stage}" -le 3 ] && [ "${stop_stage}" -ge 3 ]; then
    python3 split_feature_dataset.py ${PRJ_ROOT}/${dataset_dir}/${feature_dir}
-   # for featurefile in `cat ${PRJ_ROOT}/${dataset_dir}/${feature_dir}/train.txt`; do
-   #    fileid=`basename ${featurefile} .out`
-   #    python3 bin2h5.py ${featurefile} ${PRJ_ROOT}/${dataset_dir}/${h5_train_dir}/${fileid}.h5
-   # done
-   # for featurefile in `cat ${PRJ_ROOT}/${dataset_dir}/${feature_dir}/dev.txt`; do
-   #    fileid=`basename ${featurefile} .out`
-   #    python3 bin2h5.py ${featurefile} ${PRJ_ROOT}/${dataset_dir}/${h5_dev_dir}/${fileid}.h5
-   # done
+   for featurefile in `cat ${PRJ_ROOT}/${dataset_dir}/${feature_dir}/train.txt`; do
+      fileid=`basename ${featurefile} .out`
+      python3 bin2h5.py ${featurefile} ${PRJ_ROOT}/${dataset_dir}/${h5_train_dir}/${fileid}.h5
+   done
+   for featurefile in `cat ${PRJ_ROOT}/${dataset_dir}/${feature_dir}/dev.txt`; do
+      fileid=`basename ${featurefile} .out`
+      python3 bin2h5.py ${featurefile} ${PRJ_ROOT}/${dataset_dir}/${h5_dev_dir}/${fileid}.h5
+   done
 fi
 
 ###################################################
-#Train pytorch model                              #
+#4.Train pytorch model                              #
 ###################################################
 
 if [ "${stage}" -le 4 ] && [ "${stop_stage}" -ge 4 ]; then
@@ -145,8 +152,8 @@ if [ "${stage}" -le 4 ] && [ "${stop_stage}" -ge 4 ]; then
 fi
 
 ###################################################
-#Convert pytorch model to c++ header              #
+#5.Convert pytorch model to c++ header              #
 ###################################################
 if [ "${stage}" -le 5 ] && [ "${stop_stage}" -ge 5 ]; then
-   python3 dump_percepnet.py ${model_filename}
+   python3 ../dump_percepnet.py /home/nas4/user/kjh4/spear/PercepNet/training_set_sept12_500h/exp_erbfix_x30_snr45_rmax99/checkpoint-48000steps.pkl
 fi

@@ -488,8 +488,8 @@ static void create_features(float* Ey_lookahead, float* pitch_coh, float T, floa
   RNN_COPY(&features[0], Ey_lookahead, NB_BANDS);
   RNN_COPY(&features[NB_BANDS], pitch_coh, NB_BANDS);
   //normalize
-  for(int i=0; i<68; i++){
-    features[i] = features[i]*30;
+  for(int i=0; i<NB_BANDS; i++){
+    features[i] = log10(features[i]+1e-2);
   }
   features[68] = T;
   features[69] = pitchcorr;
